@@ -1,0 +1,22 @@
+{
+  "input": "sample/model-to-check.xlsx",
+  "output": "model-repaired.xlsx",
+  "scriptPath": "recipe.js",
+  "strict": true,
+  "arguments": {
+    "fixes": [
+      { "sheet": "模型", "cell": "B3", "formula": "='参数'!C2+1" },
+      { "sheet": "模型", "cell": "B4", "formula": "='参数'!B4" },
+      { "sheet": "模型", "cell": "B5", "formula": "=B4+1" },
+      { "sheet": "模型", "cell": "B6", "formula": "='参数'!B4*11" },
+      { "sheet": "模型", "cell": "B10", "formula": "='参数'!C3/'参数'!C2" },
+      { "sheet": "模型", "cell": "B1", "formula": "='参数'!$B$2", "businessRule": true },
+      { "sheet": "模型", "cell": "B2", "formula": "=SUM('参数'!C2:C4)", "businessRule": true }
+    ],
+    "assertions": [
+      { "id": "tax-binding", "basis": "税率取参数表的税率行", "kind": "references", "sheet": "模型", "cell": "B1", "expected": [{ "sheet": "参数", "range": "B2" }], "mode": "exact" },
+      { "id": "complete-sum", "basis": "汇总包含全部三行明细金额 10+20+5", "kind": "value", "sheet": "模型", "cell": "B2", "expected": { "type": "number", "value": 35 } },
+      { "id": "quantity-times-eleven", "basis": "数量 7 乘以 11", "kind": "value", "sheet": "模型", "cell": "B6", "expected": { "type": "number", "value": 77 } }
+    ]
+  }
+}

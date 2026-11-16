@@ -1,0 +1,22 @@
+{
+  "input": "sample/original/cf-hyperlink-image-protection.xlsx",
+  "output": "sample/template.xlsx",
+  "operations": [
+    { "op": "sheet.unprotect", "sheet": "S" },
+    { "op": "sheet.add", "name": "申请单" },
+    { "op": "write", "sheet": "申请单", "range": "A1", "values": [
+      ["项目申请单", null], [null, null],
+      ["申请人", "{{applicant.name}}"], ["部门", "{{applicant.department}}"], ["项目名称", "{{project.name}}"], ["申请日期", "{{date}}"],
+      ["数量", null], ["单价", null], ["金额", { "formula": "=B7*B8" }], ["备注", "{{notes}}"],
+      [null, null], ["审批意见", "{{approval.comment}}"], ["编号", "{{project.code}}-{{ applicant.id }}"]
+    ] },
+    { "op": "format", "sheet": "申请单", "range": "A1", "style": { "font": { "bold": true, "size": 14 } } },
+    { "op": "format", "sheet": "申请单", "range": "A3:A13", "style": { "font": { "bold": true } } },
+    { "op": "format", "sheet": "申请单", "range": "B8:B9", "style": { "numberFormat": "#,##0.00" } },
+    { "op": "layout", "sheet": "申请单", "columns": [{ "range": "A", "width": 14 }, { "range": "B", "width": 36 }] },
+    { "op": "validation.set", "sheet": "申请单", "ranges": ["B4"], "rule": { "kind": "list", "values": ["工程部", "财务部", "采购部"] }, "error": { "title": "部门", "text": "请选择列表中的部门", "style": "stop" } },
+    { "op": "validation.set", "sheet": "申请单", "ranges": ["B7"], "rule": { "kind": "number", "min": 1, "max": 100, "whole": true }, "allowBlank": false },
+    { "op": "validation.set", "sheet": "申请单", "ranges": ["B8"], "rule": { "kind": "number", "min": 0, "max": 100000 }, "allowBlank": false },
+    { "op": "validation.set", "sheet": "申请单", "ranges": ["B3"], "rule": { "kind": "textLength", "operator": "between", "values": [1, 20] }, "allowBlank": false }
+  ]
+}

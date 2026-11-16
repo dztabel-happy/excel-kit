@@ -1,0 +1,11 @@
+{
+  "create": { "sheets": ["明细", "透视", "看板"] },
+  "output": "sales.xlsx",
+  "operations": [
+    { "op": "write", "sheet": "明细", "range": "A1", "values": [["区域", "品类", "金额"], ["华东", "泵", 100], ["华东", "阀", 50], ["华北", "泵", 70], ["华南", "阀", 30]] },
+    { "op": "table.create", "sheet": "明细", "range": "A1:C5", "name": "销售" },
+    { "op": "pivot.create", "sheet": "透视", "name": "品类汇总", "cell": "A3", "source": "销售", "rows": ["品类"], "values": [{ "field": "金额", "aggregate": "sum", "name": "金额合计" }], "grandTotalCaption": "总计" },
+    { "op": "slicer.create", "sheet": "透视", "name": "区域切片", "pivots": [{ "sheet": "透视", "name": "品类汇总" }], "field": "区域", "anchor": { "kind": "oneCell", "from": { "cell": "E3" }, "width": 160, "height": 140 }, "caption": "区域" },
+    { "op": "write", "sheet": "看板", "range": "A1", "values": [["当前选择的金额合计", { "formula": "=INDEX(透视!B:B,MATCH(\"总计\",透视!A:A,0))" }], ["其中泵类", { "formula": "=IFERROR(INDEX(透视!B:B,MATCH(\"泵\",透视!A:A,0)),0)" }]] }
+  ]
+}

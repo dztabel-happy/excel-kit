@@ -1,0 +1,13 @@
+{
+  "input": "sample/budget-with-objects.xlsx",
+  "output": "budget-2026-02.xlsx",
+  "scriptPath": "recipe.js",
+  "strict": true,
+  "arguments": {
+    "source": "2026 01",
+    "target": "2026 02",
+    "updates": [{ "cell": "B4", "value": 5 }, { "cell": "B5", "value": 1 }, { "cell": "B6", "value": 10 }],
+    "assumptions": [{ "sheet": "假设", "cell": "B2", "value": 0.1 }],
+    "summary": { "sheet": "汇总", "range": "A4", "values": [["2026-02", { "formula": "=SUM('2026 02'!D4:D6)" }]] }
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "input": "sales.xlsx",
+  "output": "sales-updated.xlsx",
+  "scriptPath": "recipe.js",
+  "strict": true,
+  "arguments": {
+    "append": { "table": "销售", "columns": ["区域", "品类", "金额"], "values": [["华北", "阀", 25], ["华南", "泵", 40]] },
+    "pivot": { "sheet": "透视", "name": "品类汇总" },
+    "slicer": { "sheet": "透视", "name": "区域切片" },
+    "items": ["华东", "华北", "华南"],
+    "read": [{ "sheet": "看板", "range": "B1" }, { "sheet": "看板", "range": "B2" }],
+    "total": 0
+  }
+}

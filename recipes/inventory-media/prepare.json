@@ -1,0 +1,9 @@
+{
+  "input": "sample/WithEmbeded.xlsx",
+  "output": "sample/with-media.xlsx",
+  "operations": [
+    { "op": "image.insert", "sheet": "Sheet1", "name": "绿色标记", "source": { "path": "sample/green.jpg" }, "anchor": { "kind": "oneCell", "from": { "cell": "H2" }, "width": 96, "height": 64 }, "description": "仓库自生成的纯色 JPEG" },
+    { "op": "sheet.add", "name": "附图" },
+    { "op": "image.insert", "sheet": "附图", "name": "蓝色标记", "source": { "path": "sample/blue.png" }, "anchor": { "kind": "oneCell", "from": { "cell": "B2" }, "width": 64, "height": 48 } }
+  ]
+}

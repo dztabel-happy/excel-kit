@@ -1,0 +1,41 @@
+{
+  "version": "0.9.0",
+  "protocol": 1,
+  "runtime": {
+    "name": "Bun",
+    "version": "1.4.2"
+  },
+  "sourceCommit": "2b0432997cc1d68f30eddf78648197d257b5c361",
+  "builtAt": "2026-11-15T02:36:02.054Z",
+  "sourceDigest": "4b54b86467b76b5a47e6cdbe0b967f96dbbdbfd634cf34bc3dd5b36ecff728e0",
+  "binaryRebuild": false,
+  "artifacts": [
+    {
+      "platform": "macos-arm64",
+      "binary": "excel-kit",
+      "bytes": 94656498,
+      "sha256": "6ee295691e30c622ad1e37aebb930b72b3085df2eb32c972bb3db67d89df31e0",
+      "build": {
+        "inputs": "10e3ed5c6f4897b40031ed4c4197db3e6fde3ce0f806568e888e03ddc1319c7c"
+      }
+    },
+    {
+      "platform": "macos-x64",
+      "binary": "excel-kit",
+      "bytes": 101511440,
+      "sha256": "452e94386788d83f0f75cf0028074a5a0698184a972ce5f8e75b727f82b61773",
+      "build": {
+        "inputs": "41504f3e90c43dd919e379497316cf52179c09711b877d21fd091ae80fc278cd"
+      }
+    },
+    {
+      "platform": "windows-x64",
+      "binary": "excel-kit.exe",
+      "bytes": 118278144,
+      "sha256": "25a12c8356fbb7a30a0bc58ef9b16c994d37a7c680364267cc8c603ab113533f",
+      "build": {
+        "inputs": "532fdde35d5b84adec09d0abb69026e79265f2e893f6739f982815166f176507"
+      }
+    }
+  ]
+}

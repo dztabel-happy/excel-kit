@@ -1,0 +1,10 @@
+{
+  "create": { "sheets": ["Inputs", "Notes"] },
+  "output": "protected-model.xlsx",
+  "operations": [
+    { "op": "write", "sheet": "Inputs", "range": "A1", "values": [[10, { "formula": "=A1*2" }]] },
+    { "op": "format", "sheet": "Inputs", "range": "B1", "style": { "protection": { "locked": true, "hidden": true } } },
+    { "op": "sheet.protect", "sheet": "Inputs", "allow": { "selectLockedCells": false, "formatColumns": true, "autoFilter": true, "objects": true } },
+    { "op": "workbook.protect" }
+  ]
+}

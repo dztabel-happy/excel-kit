@@ -1,0 +1,7 @@
+{
+  "input": "sample/model-to-check.xlsx",
+  "output": "unused.xlsx",
+  "scriptPath": "recipe.js",
+  "strict": true,
+  "arguments": {}
+}

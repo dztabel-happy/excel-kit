@@ -1,0 +1,14 @@
+{
+  "input": "protected-model.xlsx",
+  "output": "updated-model.xlsx",
+  "scriptPath": "recipe.js",
+  "strict": true,
+  "arguments": {
+    "operations": [
+      { "op": "write", "sheet": "Inputs", "range": "A1", "values": [[12]] },
+      { "op": "sheet.add", "name": "Summary" },
+      { "op": "write", "sheet": "Summary", "range": "A1", "values": [["Result", { "formula": "=Inputs!B1" }]] }
+    ],
+    "calculation": { "mode": "targets", "targets": [{ "sheet": "Summary", "range": "B1" }] }
+  }
+}

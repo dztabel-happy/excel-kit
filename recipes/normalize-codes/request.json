@@ -1,0 +1,7 @@
+{
+  "input": "sample/irregular-codes.xlsx",
+  "output": "normalized-codes.xlsx",
+  "scriptPath": "recipe.js",
+  "strict": true,
+  "arguments": { "pattern": "SKU-(\\d{4})-X", "replacement": "$1", "caseSensitive": false }
+}

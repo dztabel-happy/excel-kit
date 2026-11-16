@@ -1,0 +1,26 @@
+{
+  "name": "@dztabel/excel-kit-darwin-arm64",
+  "version": "0.9.0",
+  "description": "excel-kit native program for macos-arm64. Personal non-commercial use only.",
+  "license": "SEE LICENSE IN LICENSE",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dztabel-happy/excel-kit.git",
+    "directory": "platforms/darwin-arm64"
+  },
+  "homepage": "https://github.com/dztabel-happy/excel-kit#readme",
+  "os": [
+    "darwin"
+  ],
+  "cpu": [
+    "arm64"
+  ],
+  "files": [
+    "bin/",
+    "THIRD-PARTY-NOTICES.txt"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  }
+}

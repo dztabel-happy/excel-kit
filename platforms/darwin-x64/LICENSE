@@ -1,0 +1,45 @@
+excel-kit 使用许可 / Use License
+Copyright (c) 2026 dztabel-happy. All rights reserved.
+
+本许可适用于 excel-kit 官方发行的程序、安装入口、文档及自有示例。
+它不是开源许可。公开下载不代表授予再分发权或核心源码许可。
+
+允许：
+1. 自然人免费安装、运行本软件，仅用于个人非商业活动。
+2. 为本人的上述使用制作必要副本和备份。
+3. 在上述使用范围内修改请求、示例和脚本以完成个人任务。
+4. 在个人非商业活动中使用、编辑和分享自己处理的工作簿与结果；
+   本许可不对用户文件及结果主张所有权。第三方输入材料的权利仍须尊重。
+
+不允许：
+禁止将本软件用于商业活动，包括企业经营、受雇工作、付费服务、
+商业项目及为组织或客户处理业务材料。商业使用须另获书面许可。
+未经权利人另行书面许可，不得向第三方再分发、转售、镜像、重新
+打包、公开发布本软件或其自有内容（包括修改版本）；不得将其作为
+其他产品的一部分分发。需要使用时，请引导用户从官方地址下载：
+https://github.com/dztabel-happy/excel-kit
+https://www.npmjs.com/package/@dztabel/excel-kit
+
+本许可不授予访问、披露或再许可 excel-kit 核心源码的权利。未明确
+授予的权利全部保留。个人副本应保留本许可及第三方声明。
+
+本软件按现状提供，不提供适销性、特定用途适用性或计算结果符合
+任意场景的保证。在适用法律允许的范围内，权利人不对使用本软件
+造成的损失承担责任。请按任务需要核对输出及其计算状态。
+
+第三方组件、样本及其许可独立适用，见 THIRD-PARTY-NOTICES.txt
+与各样本目录中的 LICENSE/NOTICE。本许可不限制这些第三方许可
+已授予的权利，也不将它们的许可扩展至 excel-kit 自有内容。
+
+Use is permitted only for personal, non-commercial activities, including
+necessary personal copies, backups, and adaptation of examples for that use.
+Commercial use, including business operations, employment, paid services,
+commercial projects or processing business materials for organizations or
+clients, requires separate written permission.
+Redistribution, resale, mirroring, repackaging or publication of the software
+or its proprietary materials, including modified versions, requires separate
+written permission. No ownership of user workbook outputs is claimed.
+No rights to the proprietary core source code are granted.
+The software is provided AS IS, without warranties, to the extent permitted
+by applicable law. Third-party components retain their separate licenses.
+The Chinese text above states the complete terms of this license.

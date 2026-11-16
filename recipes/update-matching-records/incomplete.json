@@ -1,0 +1,32 @@
+{
+  "input": "incomplete-input.xlsx",
+  "output": "incomplete-updated.xlsx",
+  "scriptPath": "recipe.js",
+  "strict": true,
+  "arguments": {
+    "target": {
+      "kind": "rows",
+      "table": "交易明细"
+    },
+    "where": {
+      "column": "数量",
+      "operator": "gte",
+      "value": 2
+    },
+    "set": [
+      {
+        "column": "单价",
+        "value": 9.9
+      }
+    ],
+    "read": [
+      {
+        "sheet": "月汇总",
+        "range": "D2"
+      }
+    ]
+  },
+  "calculation": {
+    "mode": "none"
+  }
+}

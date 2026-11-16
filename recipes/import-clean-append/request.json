@@ -1,0 +1,22 @@
+{
+  "input": "sample/filtered-table.xlsx",
+  "output": "table-with-imports.xlsx",
+  "scriptPath": "recipe.js",
+  "strict": true,
+  "arguments": {
+    "table": "交易明细",
+    "sources": [{ "csv": "sample/incoming-1.csv" }, { "csv": "sample/incoming-2.csv" }],
+    "columns": [
+      { "name": "行号", "type": "text" }, { "name": "原编号", "type": "text" }, { "name": "原名称", "type": "text" },
+      { "name": "日期文本", "type": "date", "format": "YYYY-MM-DD" }, { "name": "数量", "type": "number" }, { "name": "单价", "type": "number", "empty": "null" }
+    ],
+    "map": {
+      "编号": { "from": "原编号", "pattern": "^SKU-(\\d{4})-X$", "replacement": "$1" },
+      "名称": { "from": "原名称", "trim": true },
+      "日期": { "from": "日期文本" }, "数量": { "from": "数量" }, "单价": { "from": "单价" }
+    },
+    "key": "编号",
+    "required": ["编号", "名称", "日期", "数量", "单价"],
+    "check": { "sheet": "月汇总", "cell": "E1", "column": "金额" }
+  }
+}
