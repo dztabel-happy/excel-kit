@@ -1,0 +1,45 @@
+name: Verify public npm installation
+on: workflow_dispatch
+permissions:
+  contents: read
+jobs:
+  install:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-15, windows-2022]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
+        with:
+          persist-credentials: false
+      - name: Install from registry with a fresh cache and verify the selected binary
+        shell: bash
+        run: |
+          set -eu
+          version=$(node -p "require('./release.json').version")
+          npm install --prefix ./install-test --cache ./install-cache --include=optional --no-audit --no-fund --registry=https://registry.npmjs.org/ "@dztabel/excel-kit@$version"
+          node <<'JS'
+          const assert = require('node:assert/strict');
+          const fs = require('node:fs');
+          const path = require('node:path');
+          const { createHash } = require('node:crypto');
+          const { execFileSync } = require('node:child_process');
+          const expected = require('./release.json');
+          const scope = path.resolve('install-test/node_modules/@dztabel');
+          const main = path.join(scope, 'excel-kit');
+          const win = process.platform === 'win32';
+          const platform = win ? 'windows-x64' : 'macos-' + process.arch;
+          const artifact = expected.artifacts.find(item => item.platform === platform);
+          const binary = path.join(scope, 'excel-kit-' + process.platform + '-' + (win ? 'x64' : process.arch), 'bin', artifact.binary);
+          assert.equal(createHash('sha256').update(fs.readFileSync(binary)).digest('hex'), artifact.sha256);
+          const cli = (...args) => execFileSync(process.execPath, [path.join(main, 'bin/excel-kit.cjs'), ...args], { encoding: 'utf8' });
+          const version = JSON.parse(cli('version'));
+          assert.equal(version.cli, expected.version);
+          assert.equal(version.build.inputs, artifact.build.inputs);
+          assert.match(cli('help', 'range.transfer'), /expectedTargetVersion/);
+          assert.match(cli('help', 'session.script'), /trial/);
+          assert.ok(fs.existsSync(path.join(main, 'reference/sessions.md')));
+          console.log(platform, version.cli, artifact.sha256);
+          JS
