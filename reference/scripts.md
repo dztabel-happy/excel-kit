@@ -1,12 +1,12 @@
 # 脚本
 
-脚本什么时候发布、失败留下什么，见 `SKILL.md` 第 2 条；请求的键与 `wb` 的成员查 `help script`、`help wb.<成员>`。本文讲写脚本时推不出来的事。现成的脚本见包里的 `recipes/README.md`。
+发布方式见入口第 2 条；请求字段与成员查 `help script`、`help wb.<成员>`。可运行脚本见包内 `recipes/README.md`。
 
 ## 请求与脚本体
 
 - 脚本是 JavaScript **异步函数体**，不是模块：可以用顶层 `await` 和 `return`，不能 `import`、`export`。参数是 `wb` 和 `args`（请求里的 `arguments`）。长脚本放进文件用 `scriptPath`。
 - 只读的脚本也必须写 `output`，给一个不存在的路径；没有成功的 `wb.run` 就不写文件，`output.saved:false`。
-- 会话里用 `session.script`：键相同但不含打开的键，正常返回只更新会话里的工作簿，仍要 `session.save`。
+- `session.script` 在未保存状态上执行。默认保留成功修改，`session.save` 才写盘；`trial:true` 只带回结果并恢复原状态。见[会话](sessions.md)。
 - 修改只有 `wb.run` 一条路，用的是与 `run` 相同的操作。`wb` 没有通用文件接口：CSV 用 `data` 操作导入工作表再读回，图片与附件用 `image-extract`、`attachment-extract` 命令提取。
 
 ## 默认写 `strict:true`

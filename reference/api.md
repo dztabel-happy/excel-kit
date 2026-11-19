@@ -1,6 +1,6 @@
 # 会话协议
 
-给自己实现 `excel-kit session` 客户端的人；只用命令行不需要读这一篇。字段查 `excel-kit help`；调用方式的契约在 `SKILL.md`，会话怎样用见 [sessions.md](sessions.md)。
+给从 Bun 程序里调用 excel-kit、或自己实现 `excel-kit session` 客户端的人；只用命令行不需要读这一篇。字段查 `excel-kit help`；调用方式的契约在 `SKILL.md`，会话怎样用见 [sessions.md](sessions.md)。
 
 ## 1. 会话协议
 
@@ -54,6 +54,6 @@
 
 响应 `ok:false` 是 1，其中 `error.code` 为 `CANCELLED` 是 130，其余是 0。所以 0 不等于做成了：一次性脚本有失败步骤、甚至一步都没成功时是 0；会话在输入结束后退出也是 0，不论其中有多少业务失败。
 
-## 3. Node.js 与其他客户端
+## 3. 客户端接入
 
-本发行包提供独立命令行程序，不导出内核库。使用子进程调用 CLI，或通过标准输入输出连接上述会话协议。Node.js 可用 `child_process.spawn`；参数用数组传入，不需要 shell。
+使用子进程调用 CLI 或连接会话协议。版本前置条件、试算与重读见 [sessions.md](sessions.md)。

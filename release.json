@@ -1,40 +1,40 @@
 {
-  "version": "0.9.0",
+  "version": "0.10.0",
   "protocol": 1,
   "runtime": {
     "name": "Bun",
     "version": "1.4.2"
   },
-  "sourceCommit": "2b0432997cc1d68f30eddf78648197d257b5c361",
-  "builtAt": "2026-11-15T02:36:02.054Z",
-  "sourceDigest": "4b54b86467b76b5a47e6cdbe0b967f96dbbdbfd634cf34bc3dd5b36ecff728e0",
-  "binaryRebuild": false,
+  "sourceCommit": "55f6609f5fb719aa27ac2c0359bf7c7e7cd316ab",
+  "builtAt": "2026-11-19T08:51:39.008Z",
+  "sourceDigest": "2fb39e6a6058ec215c5ceb4ae854b6cdbae72c595e237add6dba595fb9895b9a",
+  "binaryRebuild": true,
   "artifacts": [
     {
       "platform": "macos-arm64",
       "binary": "excel-kit",
-      "bytes": 94656498,
-      "sha256": "6ee295691e30c622ad1e37aebb930b72b3085df2eb32c972bb3db67d89df31e0",
+      "bytes": 94920690,
+      "sha256": "2df9951126122207ed906129a197ace22d015760414ef36261e1e7c476dcd0a9",
       "build": {
-        "inputs": "10e3ed5c6f4897b40031ed4c4197db3e6fde3ce0f806568e888e03ddc1319c7c"
+        "inputs": "3edf226cc46a302a442109e94d97e0d43358935f66ab0ab7abd6eaa472aedffa"
       }
     },
     {
       "platform": "macos-x64",
       "binary": "excel-kit",
-      "bytes": 101511440,
-      "sha256": "452e94386788d83f0f75cf0028074a5a0698184a972ce5f8e75b727f82b61773",
+      "bytes": 101773584,
+      "sha256": "4380e4de7bc45c50e7af31b6e887d1e0dd09c0b8e79e6801a0af862f654b3ea9",
       "build": {
-        "inputs": "41504f3e90c43dd919e379497316cf52179c09711b877d21fd091ae80fc278cd"
+        "inputs": "b876cb8bc55824e8f3fc81ca811e083002ad5ee0a2b80794cc66de88545c2bf9"
       }
     },
     {
       "platform": "windows-x64",
       "binary": "excel-kit.exe",
-      "bytes": 118278144,
-      "sha256": "25a12c8356fbb7a30a0bc58ef9b16c994d37a7c680364267cc8c603ab113533f",
+      "bytes": 118537728,
+      "sha256": "c4ce062913292b9f4de865db66de1919bcaba2eb3ce2fe173f9a29cc8c0830f1",
       "build": {
-        "inputs": "532fdde35d5b84adec09d0abb69026e79265f2e893f6739f982815166f176507"
+        "inputs": "f9c05dc52f7d13ccdbe6ebe38d6b85a6d30d4985355559b43323a8fd21e14be2"
       }
     }
   ]

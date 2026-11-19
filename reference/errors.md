@@ -1,16 +1,14 @@
 # 错误码
 
-先按 `SKILL.md` 第 5 条判失败。表里没有的码，先看响应自己的 `error.message` 与 `error.details`，再用 `help find <词>` 找相关的帮助。文件名都在 `reference/` 下。
+先看 `error.message` 与 `error.details`，用 `help find <词>` 查相关帮助。
 
 ## `details.suggestions` 的读法
 
 超时与读取超限的错误在 `details.suggestions` 里给出候选的改法，`details.hints` 写明字段该放在哪里。
 
-- 每项有 `path`（改哪里）和 `condition`（适用条件与操作顺序），另有 `set`（要设置或替换的小对象）或 `request`（可以独立发送的只读请求）。
-- **不要把 `set` 当作整份请求发出去**：按 `path` 改对应的层级，保留其余的输入、编辑、版本、输出与计算环境。
+- 按 `condition` 判断适用条件，按 `path` 合并局部修改 `set`，保留输入、编辑、版本与计算环境。`request` 可作为独立只读请求。
 - 简写的步骤先把原操作包成 `operations:[原操作]`（原生编辑是 `nativeEdits`）；旧式查询先删 `calculate` 再设 `calculation`。
-- 每项至多 1024 字符，合计至多 4096；缩减或省略时 `details.suggestionsTruncated:true`。候选不回显编辑的数据、公式或脚本文本，也不是可以盲目执行的恢复计划。
-- 脚本里：`strict` 下在 `error.details.cause.details`，否则在 `error.details.lastCallFailure.details`；其余详情过大被省去时有 `detailsOmitted:true`。
+- 单项限 1024 字符，合计 4096；截断见 `details.suggestionsTruncated`。脚本错误路径见末节。详情过大时有 `detailsOmitted:true`。
 
 ## 请求与读取
 

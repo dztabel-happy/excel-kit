@@ -18,6 +18,8 @@
 | R10 | [inventory-media](inventory-media/README.md) | 清点图片与附件并提取核对 | `image-extract`、`attachment-extract` |
 | R11 | [edit-protected-workbook](edit-protected-workbook/README.md) | 保存无口令保护权限、编辑并恢复核对；带口令时拒绝 | 先 `run prepare.json` 准备示例 |
 
+[修复模型并试算两个情景](repair-and-test-model/README.md)使用同一份工作簿组合版本比较、局部迁移、试算、精细重读、条件透视与布局检查。
+
 ## 写自己的脚本时
 
 - **能事先写全就不用脚本。** 一份 `run` 把改动、计算、读取写在一起；脚本只用在下一步取决于上一步结果的时候。

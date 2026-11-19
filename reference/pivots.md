@@ -38,3 +38,9 @@ const values = step.result.ranges[0].cells;
 ## 报告时
 
 依赖未刷新透视的公式有值，但只与透视保存的结果一致。报告里要写明：公式已按工作簿当前保存的透视结果重新计算；透视未刷新，其与当前来源的一致性未获确认。列出哪些值依赖透视；来源变过（`PIVOT_NOT_REFRESHED`、`refresh_required`）的，请用户在 Excel 里刷新后再采信。打开时刷新的透视，引用它的公式不可得，`all` 默认仍发布其他可靠结果并给清单；`requireCompleteCalculation:true` 才拒绝。
+
+本地来源透视的 `pivot.create`、`pivot.set` 支持以下定义，`query.pivots` 的 `settings` 可读回。改源数据后执行 `pivot.refresh`。
+
+- `dateGroups:[{field:"Date",by:"quarters"},{field:"Date",by:"years",name:"Year"}]` 以季度和年分组。在行字段中依次引用 Year、Date。最细级沿用来源字段名，较粗级取唯一名称。支持年、季、月、日。
+- `rules:[{type:"captionBeginsWith",field:"Team",value:"North"},{type:"topN",field:"Team",measure:"Revenue",count:1}]` 在当前透视过滤标签并按指定度量排名。并列边界保留所有命中的成员。
+- `calculatedFields:[{name:"Unit price",formula:"Sales/Units"}]` 声明计算字段，随后在 `values` 中按字段名引用。分组和总计均先汇总来源字段，再计算比值。条件费率、零分母与舍入指标可组合数值比较、IF、ABS 和 ROUND。先手算同组多行的分组合计和总计，再对照刷新结果；函数形状查 `help pivot.create calculatedFields`。

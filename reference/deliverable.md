@@ -9,7 +9,7 @@
 3. `output.version` 是写出文件的 SHA-256。会话里它与会话版本相等，就确认了写出的内容，不必重新打开。
 4. 结构性结果（工作表次序、可见性、保护、名称）对交付件 `inspect` 或 `query`。
 5. 关键数值用紧凑读取，确认 `s` 是 `result`。对交付件不计算地读，读到的是存值（`cache`）；要当前值就让这次读取计算。
-6. 要证明"其他内容没变"，用同一份读取请求（`none`、紧凑形式）分别读原件和交付件，在本地逐格比较，只比任务可能影响到的区域。
+6. 核对输入与公式的变化用 [compare](paging.md)。样式、对象和布局另查对应属性。
 
 ## 一步之后，每个公式存的是什么
 
@@ -59,8 +59,8 @@
 
 `run` 的 `calculation.unavailable` 给 `count/formulaCount/byReason/examples(≤10)/stepId/report`；计算不可得与保存缺值是两项不同统计，多个原因的计数也不能相加当格数。报告 `{path,sha256,records}` 指向本次发布的独立 JSONL 文件；批次提交、session.save、一次性脚本在顶层 `calculationReport` 给聚合文件。会话步骤只给统计与 stepId，清单先留在内存；预检不写报告文件。
 
-文件第一行是头：schemaVersion、最终输出版本、各步骤 inputVersion/outputVersion、计算条件及摘要、不可得格数 count、压缩记录数 records、recordsSha256 与同次保存核验。之后每行是一条区域记录，带 stepId/sheetId/sheet/range/count/reasons/owner/savedValue。每步按表序、行、列排列，同原因/同保存状态/同所有者的横向连续格压成一段，不跨空隙。
+首行记录版本、计算条件、不可得格数 count、压缩条数 records、recordsSha256 与保存核验。之后逐行列出区域及原因、所有者和存值状态，按步骤、表、行、列排序。
 
-先核对文件的 SHA-256 与响应一致，再从第二行开始按行分批读取（例如每 1000 行一页）；保留每行原始 UTF-8 字节及换行。按 stepId 分组核对记录条数 records、展开格数 count 与原始记录行的 SHA-256（recordsSha256），并检查区域无重叠。这样取完整份清单，不需调用 query 或重新计算。发布文件与报告应一起保留；报告本身存在不能证明工作簿已经发布，仍看 output.saved/version 与批次 publication。
+核对文件 SHA-256 后流式读第二行起的记录。按 stepId 核对 records、count、区域无重叠及原始 UTF-8 行（含换行）的 recordsSha256。保留文件与报告，以 output.saved/version 与批次 publication 确认发布。
 
 `fileVerification.calculation` 给本次 computedFormulas/computedResults、missingFormulas/missingResults、historicalResults、computedSha256 和 outputVersion；computedSha256 是表序/行/列顺序的 `[sheetId,cell,type,value]` JSON UTF-8 行摘要（每行末尾 LF）。保存核验逐格确认写出值与本次模型一致；这不等于与 Excel 真值一致。不可把保留的 historical 值当本次计算结果，也不能用后一次 query 或 Excel 重算替代同次保存依据。

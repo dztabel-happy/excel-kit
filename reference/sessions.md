@@ -46,3 +46,9 @@ EOF
 ## 结束与取消
 
 标准输入关闭后，会话做完已经收到的请求，丢弃没保存的状态，退出码 0。取消一条请求用通知 `{"jsonrpc":"2.0","method":"$/cancel","params":{"id":<请求 id>}}`。信号、并发与协议错误见 [api.md](api.md)。
+
+## 试算与提交
+
+先记下当前版本。用 `help session.script` 的 `trial:true` 在该版本及其未保存编辑上试算。脚本只返回所需的普通 JSON。应答中的试算结果属于该情景，之后仍可在同一基准上换参数。选定后以原版本为 `expectedSessionVersion` 正常执行，再保存。
+
+需要增量读取时查 `help session.open`，打开时设 `reread:"precise"`。成功编辑后按 `reread.version` 重读列出的范围和图表对象。返回整簿时重新查询整簿。试算恢复后不发变更提示。

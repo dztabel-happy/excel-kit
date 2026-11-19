@@ -30,7 +30,7 @@ excel-kit version
 excel-kit help
 ```
 
-当前版本应返回 `cli: "0.9.0"`、`protocol: 1`。帮助首页是索引，`excel-kit help <名称>` 查询具体命令、操作或函数。
+当前版本应返回 `cli: "0.10.0"`、`protocol: 1`。帮助首页是索引，`excel-kit help <名称>` 查询具体命令、操作或函数。
 
 ### 3. 交给 agent 使用
 
@@ -40,7 +40,7 @@ excel-kit help
 
 > 把我的学习用预算模型滚动到下一期间，保留公式、格式和打印设置；更新给出的假设，并核对总金额。
 
-`SKILL.md`、`reference/` 和 11 个[配方](recipes/README.md)也包含在 npm 安装目录中。全局安装目录可用 `npm root -g` 查找，其下的 `@dztabel/excel-kit/` 就是说明目录。使用配方前将其复制到工作目录，按对应 README 执行。
+`SKILL.md`、`reference/` 和 12 个[配方](recipes/README.md)也包含在 npm 安装目录中。全局安装目录可用 `npm root -g` 查找，其下的 `@dztabel/excel-kit/` 就是说明目录。使用配方前将其复制到工作目录，按对应 README 执行。
 
 ## 调用方式
 
@@ -61,7 +61,7 @@ excel-kit help script
 
 ## 范围与版本
 
-0.9.0 主要降低大工作簿的内存占用，并修正查找空值、透视结果读取与 EXP 舍入问题。实际验证、发行例外和资源边界见 [VALIDATION.md](VALIDATION.md)，版本变化见 [CHANGELOG.md](CHANGELOG.md)。
+0.10.0 新增图表系列和统计图、透视规则、跨工作簿局部迁移、两版内容比较、会话试算、精细重读和文字截断检查。实际验证、发行例外和资源边界见 [VALIDATION.md](VALIDATION.md)，版本变化见 [CHANGELOG.md](CHANGELOG.md)。
 
 不执行 VBA，不编辑加密文件，不提供多工作簿依赖求值。具体函数边界见 [函数限制](reference/function-limits.md)，未支持范围见 [unsupported.md](reference/unsupported.md)。脚本不是安全沙箱，只运行可信代码。内存与时间取决于文件结构，不能保证所有大表都在固定预算内完成。
 
