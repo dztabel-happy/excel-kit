@@ -7,7 +7,13 @@ on:
         required: true
         type: string
 
+      reuse_run:
+        description: Optional accepted run ID for a packaging-only change directly after the binary commit
+        required: false
+        type: string
+
 permissions:
+  actions: read
   contents: read
 concurrency:
   group: excel-kit-release
@@ -31,6 +37,7 @@ jobs:
           ref: ${{ inputs.core_sha }}
           ssh-key: ${{ secrets.CORE_DEPLOY_KEY }}
           persist-credentials: false
+          fetch-depth: 2
           sparse-checkout: |
             src
             scripts
@@ -39,17 +46,36 @@ jobs:
             skills/excel-kit
             distribution
             docs/goals/phase-17-large-workbook-memory/evidence/delivery/public-01
+      - name: Check candidate provenance and smoke results
+        if: inputs.reuse_run != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN: ${{ inputs.reuse_run }}
+        run: |
+          set -eu
+          [[ "$RUN" =~ ^[0-9]+$ ]]
+          base="repos/$GITHUB_REPOSITORY/actions/runs/$RUN"
+          gh api "$base" | jq -e '.path == ".github/workflows/release.yml" and .event == "workflow_dispatch" and .head_branch == "main"' > /dev/null
+          gh api "$base/jobs" | jq -e '[.jobs[]|select(.conclusion=="success")|.name] | contains(["build","smoke (macos-15)","smoke (windows-2022)"])' > /dev/null
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        if: inputs.reuse_run != ''
+        with:
+          name: release-packages
+          github-token: ${{ github.token }}
+          run-id: ${{ inputs.reuse_run }}
+          path: ${{ runner.temp }}/previous
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6
+        if: inputs.reuse_run == ''
         with:
           bun-version: 1.4.2
       - name: Build and check distribution packages
         id: prepare
         env:
+          REUSE_RUN: ${{ inputs.reuse_run }}
           CORE_SHA: ${{ inputs.core_sha }}
         run: |
           set -eu
           test "$(git rev-parse HEAD)" = "$CORE_SHA"
-          test "$(bun --version)" = 1.4.2
           version=$(node -p 'require("./package.json").version')
           [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
           test "$version" = "$(node -p 'require("./distribution/package.json").version')"
@@ -59,10 +85,16 @@ jobs:
             echo "$label"
             "$@" > "$RUNNER_TEMP/private-build.log" 2>&1 || { echo "$label failed"; exit 1; }
           }
-          private_step install bun install --frozen-lockfile
-          private_step compile bun run scripts/build.ts --outdir "$RUNNER_TEMP/programs"
-          private_step prepare python3 scripts/prepare_public_distribution.py "$RUNNER_TEMP/prepared" --programs "$RUNNER_TEMP/programs"
-          private_step pack python3 scripts/pack_release_tarballs.py "$RUNNER_TEMP/prepared"
+          if [ -n "$REUSE_RUN" ]; then
+            private_step repackage python3 scripts/prepare_public_distribution.py "$RUNNER_TEMP/prepared" --reuse-packages "$RUNNER_TEMP/previous/packages"
+            private_step pack python3 scripts/pack_release_tarballs.py "$RUNNER_TEMP/prepared" "$RUNNER_TEMP/previous"
+          else
+            test "$(bun --version)" = 1.4.2
+            private_step install bun install --frozen-lockfile
+            private_step compile bun run scripts/build.ts --outdir "$RUNNER_TEMP/programs"
+            private_step prepare python3 scripts/prepare_public_distribution.py "$RUNNER_TEMP/prepared" --programs "$RUNNER_TEMP/programs"
+            private_step pack python3 scripts/pack_release_tarballs.py "$RUNNER_TEMP/prepared"
+          fi
           echo "version=$version" >> "$GITHUB_OUTPUT"
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
@@ -101,7 +133,9 @@ jobs:
           node -e "if(require('./version.json').cli!==process.env.VERSION)process.exit(1)"
           node "$cli" help range.transfer | grep expectedTargetVersion > /dev/null
           node "$cli" help session.script | grep trial > /dev/null
-          test -f check/node_modules/@dztabel/excel-kit/reference/sessions.md
+          skill=check/node_modules/@dztabel/excel-kit/skills/excel-kit
+          test -f "$skill/SKILL.md"
+          test -f "$skill/reference/sessions.md"
           if [[ "$RUNNER_OS" == macOS ]]; then
             unzip -q "packages/excel-kit-$VERSION-macos-x64.zip" -d intel
             ./intel/excel-kit version > intel-version.json

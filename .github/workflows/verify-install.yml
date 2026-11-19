@@ -37,7 +37,7 @@ jobs:
           const main = path.join(scope, 'excel-kit');
           const expected = require(path.join(main, 'release.json'));
           assert.equal(expected.version, process.env.VERSION);
-          assert.equal(expected.sourceCommit, process.env.CORE_SHA);
+          assert.equal(expected.packageSourceCommit, process.env.CORE_SHA);
           const win = process.platform === 'win32';
           const platform = win ? 'windows-x64' : 'macos-' + process.arch;
           const artifact = expected.artifacts.find(item => item.platform === platform);
@@ -49,6 +49,17 @@ jobs:
           assert.equal(version.build.inputs, artifact.build.inputs);
           assert.match(cli('help', 'range.transfer'), /expectedTargetVersion/);
           assert.match(cli('help', 'session.script'), /trial/);
-          assert.ok(fs.existsSync(path.join(main, 'reference/sessions.md')));
+          const skill = path.join(main, 'skills/excel-kit');
+          const topics = fs.readdirSync(path.join(skill,'reference')).filter(s => s.endsWith('.md'));
+          assert.equal(topics.length, 19);
+          const entry = fs.readFileSync(path.join(skill,'SKILL.md'),'utf8');
+          for (const topic of topics) assert.ok(entry.includes('reference/' + topic), topic);
+          for (const name of ['SKILL.md', ...topics.map(n => 'reference/' + n)]) {
+            const doc = path.join(skill, name);
+            for (const match of fs.readFileSync(doc,'utf8').matchAll(/\[[^\]\n]+\]\(([^)]+)\)/g)) {
+              const link = match[1];
+              if (!link.startsWith('#') && !/^https?:/.test(link)) assert.ok(fs.statSync(path.resolve(path.dirname(doc), link.split('#')[0])).isFile(), link);
+            }
+          }
           console.log(platform, version.cli, artifact.sha256);
           JS
