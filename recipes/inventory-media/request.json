@@ -1,7 +1,0 @@
-{
-  "input": "sample/with-media.xlsx",
-  "output": "unused.xlsx",
-  "scriptPath": "recipe.js",
-  "strict": true,
-  "arguments": { "workbook": "sample/with-media.xlsx", "folder": "extracted" }
-}

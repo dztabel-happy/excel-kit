@@ -1,8 +1,0 @@
-{
-  "input": "sample/trading-table.xlsx",
-  "output": "sample/filtered-table.xlsx",
-  "operations": [
-    { "op": "filter.set", "target": { "table": "交易明细" }, "columns": [{ "column": "数量", "condition": { "kind": "number", "comparisons": [{ "operator": "greaterThanOrEqual", "value": 2 }] } }] },
-    { "op": "write", "sheet": "月汇总", "range": "D1", "values": [["可见金额合计", { "formula": "=SUBTOTAL(109,交易明细[金额])" }]] }
-  ]
-}

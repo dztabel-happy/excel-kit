@@ -1,0 +1,170 @@
+name: Release ExcelKit
+on:
+  workflow_dispatch:
+    inputs:
+      core_sha:
+        description: Reviewed 40-character private source commit
+        required: true
+        type: string
+
+permissions:
+  contents: read
+concurrency:
+  group: excel-kit-release
+  cancel-in-progress: false
+
+jobs:
+  build:
+    if: github.ref == 'refs/heads/main'
+    runs-on: macos-15
+    timeout-minutes: 25
+    outputs:
+      version: ${{ steps.prepare.outputs.version }}
+    steps:
+      - name: Validate release input
+        env:
+          CORE_SHA: ${{ inputs.core_sha }}
+        run: '[[ "$CORE_SHA" =~ ^[0-9a-f]{40}$ ]]'
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
+        with:
+          repository: dztabel-happy/excel-kit-core
+          ref: ${{ inputs.core_sha }}
+          ssh-key: ${{ secrets.CORE_DEPLOY_KEY }}
+          persist-credentials: false
+          sparse-checkout: |
+            src
+            scripts
+            tests
+            recipes
+            skills/excel-kit
+            distribution
+            docs/goals/phase-17-large-workbook-memory/evidence/delivery/public-01
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6
+        with:
+          bun-version: 1.4.2
+      - name: Build and check distribution packages
+        id: prepare
+        env:
+          CORE_SHA: ${{ inputs.core_sha }}
+        run: |
+          set -eu
+          test "$(git rev-parse HEAD)" = "$CORE_SHA"
+          test "$(bun --version)" = 1.4.2
+          version=$(node -p 'require("./package.json").version')
+          [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          test "$version" = "$(node -p 'require("./distribution/package.json").version')"
+          private_step() {
+            label=$1
+            shift
+            echo "$label"
+            "$@" > "$RUNNER_TEMP/private-build.log" 2>&1 || { echo "$label failed"; exit 1; }
+          }
+          private_step install bun install --frozen-lockfile
+          private_step compile bun run scripts/build.ts --outdir "$RUNNER_TEMP/programs"
+          private_step prepare python3 scripts/prepare_public_distribution.py "$RUNNER_TEMP/prepared" --programs "$RUNNER_TEMP/programs"
+          private_step pack python3 scripts/pack_release_tarballs.py "$RUNNER_TEMP/prepared"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: release-packages
+          if-no-files-found: error
+          retention-days: 7
+          compression-level: 0
+          path: |
+            ${{ runner.temp }}/prepared/npm/*.tgz
+            ${{ runner.temp }}/prepared/packages/*.zip
+            ${{ runner.temp }}/prepared/packages/SHA256SUMS
+            ${{ runner.temp }}/prepared/npm-pack.json
+            ${{ runner.temp }}/prepared/package-boundary.json
+
+  smoke:
+    needs: build
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-15, windows-2022]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: release-packages
+      - name: Install the packed program and check its contract
+        shell: bash
+        env:
+          VERSION: ${{ needs.build.outputs.version }}
+        run: |
+          set -eu
+          platform=$(node -p "process.platform+'-'+process.arch")
+          npm install --prefix check --offline --ignore-scripts --no-audit --no-fund "./npm/dztabel-excel-kit-$VERSION.tgz" "./npm/dztabel-excel-kit-$platform-$VERSION.tgz"
+          cli=check/node_modules/@dztabel/excel-kit/bin/excel-kit.cjs
+          node "$cli" version > version.json
+          node -e "if(require('./version.json').cli!==process.env.VERSION)process.exit(1)"
+          node "$cli" help range.transfer | grep expectedTargetVersion > /dev/null
+          node "$cli" help session.script | grep trial > /dev/null
+          test -f check/node_modules/@dztabel/excel-kit/reference/sessions.md
+          if [[ "$RUNNER_OS" == macOS ]]; then
+            unzip -q "packages/excel-kit-$VERSION-macos-x64.zip" -d intel
+            ./intel/excel-kit version > intel-version.json
+            node -e "if(require('./intel-version.json').cli!==process.env.VERSION)process.exit(1)"
+          fi
+
+  publish:
+    needs: [build, smoke]
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
+        with:
+          repository: dztabel-happy/excel-kit-core
+          ref: ${{ inputs.core_sha }}
+          ssh-key: ${{ secrets.CORE_DEPLOY_KEY }}
+          persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: /scripts/publish_public_packages.py
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: release-packages
+          path: prepared
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+      - name: Publish inspected tarballs and verify registry integrity
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          set -eu
+          test -n "$NODE_AUTH_TOKEN" || { echo "Configure NPM_TOKEN in repository Actions secrets."; exit 1; }
+          npm whoami --registry=https://registry.npmjs.org/
+          python3 scripts/publish_public_packages.py prepared --publish
+      - name: Publish verified ZIPs
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          VERSION: ${{ needs.build.outputs.version }}
+          WRAPPER_SHA: ${{ github.sha }}
+        run: |
+          set -eu
+          cd prepared/packages
+          sha256sum -c SHA256SUMS
+          tag="v$VERSION"
+          if ! gh release view "$tag" --repo "$GH_REPO" >/dev/null 2>&1; then
+            gh release create "$tag" --repo "$GH_REPO" --target "$WRAPPER_SHA" --draft --title "ExcelKit $VERSION" --notes "npm: @dztabel/excel-kit@$VERSION. Platform ZIPs and SHA-256 checksums are attached."
+          fi
+          for path in SHA256SUMS *.zip; do
+            digest=$(gh release view "$tag" --repo "$GH_REPO" --json assets | jq -r --arg path "$path" '.assets[]|select(.name==$path)|.digest')
+            if [ -n "$digest" ]; then
+              test "$digest" = "sha256:$(sha256sum "$path" | cut -d' ' -f1)"
+            else
+              gh release upload "$tag" "$path" --repo "$GH_REPO"
+            fi
+          done
+          gh release edit "$tag" --repo "$GH_REPO" --draft=false --latest
+  install:
+    needs: [build, publish]
+    uses: ./.github/workflows/verify-install.yml
+    with:
+      version: ${{ needs.build.outputs.version }}
+      core_sha: ${{ inputs.core_sha }}

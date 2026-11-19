@@ -1,5 +1,13 @@
 name: Verify public npm installation
-on: workflow_dispatch
+on:
+  workflow_call:
+    inputs:
+      version:
+        required: true
+        type: string
+      core_sha:
+        required: true
+        type: string
 permissions:
   contents: read
 jobs:
@@ -11,24 +19,25 @@ jobs:
     runs-on: ${{ matrix.os }}
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
-        with:
-          persist-credentials: false
       - name: Install from registry with a fresh cache and verify the selected binary
+        env:
+          VERSION: ${{ inputs.version }}
+          CORE_SHA: ${{ inputs.core_sha }}
         shell: bash
         run: |
           set -eu
-          version=$(node -p "require('./release.json').version")
-          npm install --prefix ./install-test --cache ./install-cache --include=optional --no-audit --no-fund --registry=https://registry.npmjs.org/ "@dztabel/excel-kit@$version"
+          npm install --prefix ./install-test --cache ./install-cache --include=optional --no-audit --no-fund --registry=https://registry.npmjs.org/ "@dztabel/excel-kit@$VERSION"
           node <<'JS'
           const assert = require('node:assert/strict');
           const fs = require('node:fs');
           const path = require('node:path');
           const { createHash } = require('node:crypto');
           const { execFileSync } = require('node:child_process');
-          const expected = require('./release.json');
           const scope = path.resolve('install-test/node_modules/@dztabel');
           const main = path.join(scope, 'excel-kit');
+          const expected = require(path.join(main, 'release.json'));
+          assert.equal(expected.version, process.env.VERSION);
+          assert.equal(expected.sourceCommit, process.env.CORE_SHA);
           const win = process.platform === 'win32';
           const platform = win ? 'windows-x64' : 'macos-' + process.arch;
           const artifact = expected.artifacts.find(item => item.platform === platform);
