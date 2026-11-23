@@ -1,4 +1,5 @@
 name: Release ExcelKit
+run-name: ${{ inputs.publish && 'Publish' || 'Rehearse' }} ExcelKit ${{ inputs.core_sha }}
 on:
   workflow_dispatch:
     inputs:
@@ -7,9 +8,12 @@ on:
         required: true
         type: string
 
-      reuse_run:
-        description: Optional accepted run ID for a packaging-only change directly after the binary commit
-        required: false
+      publish:
+        description: Publish the exact packages from a successful rehearsal
+        type: boolean
+        default: false
+      rehearsal_run_id:
+        description: Successful rehearsal ID (required when publishing)
         type: string
 
 permissions:
@@ -20,24 +24,43 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  candidate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Identify the source and public workflow revision
+        shell: bash
+        env:
+          CORE_SHA: ${{ inputs.core_sha }}
+          PUBLISH: ${{ inputs.publish }}
+          REHEARSAL: ${{ inputs.rehearsal_run_id }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -eu
+          test "$GITHUB_REF" = refs/heads/main
+          [[ "$CORE_SHA" =~ ^[0-9a-f]{40}$ ]]
+          if [[ "$PUBLISH" == true ]]; then
+            [[ "$REHEARSAL" =~ ^[0-9]+$ ]]
+            gh api "repos/$GITHUB_REPOSITORY/actions/runs/$REHEARSAL" |
+              jq -e --arg core "$CORE_SHA" --arg public "$GITHUB_SHA" '
+                .event == "workflow_dispatch" and .path == ".github/workflows/release.yml" and
+                .conclusion == "success" and .head_branch == "main" and .head_sha == $public and
+                .display_title == ("Rehearse ExcelKit " + $core)' >/dev/null
+          fi
+
   build:
-    if: github.ref == 'refs/heads/main'
+    needs: candidate
+    if: ${{ !inputs.publish }}
     runs-on: macos-15
     timeout-minutes: 25
     outputs:
       version: ${{ steps.prepare.outputs.version }}
     steps:
-      - name: Validate release input
-        env:
-          CORE_SHA: ${{ inputs.core_sha }}
-        run: '[[ "$CORE_SHA" =~ ^[0-9a-f]{40}$ ]]'
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
         with:
           repository: dztabel-happy/excel-kit-core
           ref: ${{ inputs.core_sha }}
           ssh-key: ${{ secrets.CORE_DEPLOY_KEY }}
           persist-credentials: false
-          fetch-depth: 2
           sparse-checkout: |
             src
             scripts
@@ -46,32 +69,12 @@ jobs:
             skills/excel-kit
             distribution
             docs/goals/phase-17-large-workbook-memory/evidence/delivery/public-01
-      - name: Check candidate provenance and smoke results
-        if: inputs.reuse_run != ''
-        env:
-          GH_TOKEN: ${{ github.token }}
-          RUN: ${{ inputs.reuse_run }}
-        run: |
-          set -eu
-          [[ "$RUN" =~ ^[0-9]+$ ]]
-          base="repos/$GITHUB_REPOSITORY/actions/runs/$RUN"
-          gh api "$base" | jq -e '.path == ".github/workflows/release.yml" and .event == "workflow_dispatch" and .head_branch == "main"' > /dev/null
-          gh api "$base/jobs" | jq -e '[.jobs[]|select(.conclusion=="success")|.name] | contains(["build","smoke (macos-15)","smoke (windows-2022)"])' > /dev/null
-      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
-        if: inputs.reuse_run != ''
-        with:
-          name: release-packages
-          github-token: ${{ github.token }}
-          run-id: ${{ inputs.reuse_run }}
-          path: ${{ runner.temp }}/previous
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6
-        if: inputs.reuse_run == ''
         with:
           bun-version: 1.4.2
       - name: Build and check distribution packages
         id: prepare
         env:
-          REUSE_RUN: ${{ inputs.reuse_run }}
           CORE_SHA: ${{ inputs.core_sha }}
         run: |
           set -eu
@@ -85,16 +88,12 @@ jobs:
             echo "$label"
             "$@" > "$RUNNER_TEMP/private-build.log" 2>&1 || { echo "$label failed"; exit 1; }
           }
-          if [ -n "$REUSE_RUN" ]; then
-            private_step repackage python3 scripts/prepare_public_distribution.py "$RUNNER_TEMP/prepared" --reuse-packages "$RUNNER_TEMP/previous/packages"
-            private_step pack python3 scripts/pack_release_tarballs.py "$RUNNER_TEMP/prepared" "$RUNNER_TEMP/previous"
-          else
-            test "$(bun --version)" = 1.4.2
-            private_step install bun install --frozen-lockfile
-            private_step compile bun run scripts/build.ts --outdir "$RUNNER_TEMP/programs"
-            private_step prepare python3 scripts/prepare_public_distribution.py "$RUNNER_TEMP/prepared" --programs "$RUNNER_TEMP/programs"
-            private_step pack python3 scripts/pack_release_tarballs.py "$RUNNER_TEMP/prepared"
-          fi
+          test "$(bun --version)" = 1.4.2
+          private_step install bun install --frozen-lockfile
+          private_step compile bun run scripts/build.ts --outdir "$RUNNER_TEMP/programs"
+          private_step prepare python3 scripts/prepare_public_distribution.py "$RUNNER_TEMP/prepared" --programs "$RUNNER_TEMP/programs"
+          private_step pack python3 scripts/pack_release_tarballs.py "$RUNNER_TEMP/prepared"
+          python3 scripts/publish_public_packages.py "$RUNNER_TEMP/prepared"
           echo "version=$version" >> "$GITHUB_OUTPUT"
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
@@ -111,42 +110,21 @@ jobs:
 
   smoke:
     needs: build
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [macos-15, windows-2022]
-    runs-on: ${{ matrix.os }}
-    steps:
-      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
-        with:
-          name: release-packages
-      - name: Install the packed program and check its contract
-        shell: bash
-        env:
-          VERSION: ${{ needs.build.outputs.version }}
-        run: |
-          set -eu
-          platform=$(node -p "process.platform+'-'+process.arch")
-          npm install --prefix check --offline --ignore-scripts --no-audit --no-fund "./npm/dztabel-excel-kit-$VERSION.tgz" "./npm/dztabel-excel-kit-$platform-$VERSION.tgz"
-          cli=check/node_modules/@dztabel/excel-kit/bin/excel-kit.cjs
-          node "$cli" version > version.json
-          node -e "if(require('./version.json').cli!==process.env.VERSION)process.exit(1)"
-          node "$cli" help range.transfer | grep expectedTargetVersion > /dev/null
-          node "$cli" help session.script | grep trial > /dev/null
-          skill=check/node_modules/@dztabel/excel-kit/skills/excel-kit
-          test -f "$skill/SKILL.md"
-          test -f "$skill/reference/sessions.md"
-          if [[ "$RUNNER_OS" == macOS ]]; then
-            unzip -q "packages/excel-kit-$VERSION-macos-x64.zip" -d intel
-            ./intel/excel-kit version > intel-version.json
-            node -e "if(require('./intel-version.json').cli!==process.env.VERSION)process.exit(1)"
-          fi
+    uses: ./.github/workflows/verify-install.yml
+    with:
+      version: ${{ needs.build.outputs.version }}
+      core_sha: ${{ inputs.core_sha }}
+      candidate: true
 
   publish:
-    needs: [build, smoke]
+    needs: candidate
+    if: inputs.publish
+    outputs:
+      version: ${{ steps.identity.outputs.version }}
     runs-on: ubuntu-latest
     timeout-minutes: 50
     permissions:
+      actions: read
       contents: write
     steps:
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
@@ -161,10 +139,24 @@ jobs:
         with:
           name: release-packages
           path: prepared
+          github-token: ${{ github.token }}
+          run-id: ${{ inputs.rehearsal_run_id }}
       - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
         with:
           node-version: 22
           registry-url: https://registry.npmjs.org
+      - name: Bind downloaded packages to the rehearsed private source
+        id: identity
+        env:
+          CORE_SHA: ${{ inputs.core_sha }}
+        run: |
+          set -eu
+          version=$(jq -er 'map(.version)|unique|select(length==1)|first' prepared/npm-pack.json)
+          [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          tar -xOzf "prepared/npm/dztabel-excel-kit-$version.tgz" package/release.json |
+            jq -e --arg core "$CORE_SHA" --arg version "$version" '.packageSourceCommit==$core and .sourceCommit==$core and .version==$version' >/dev/null
+          (cd prepared/packages && sha256sum -c SHA256SUMS)
+          echo "version=$version" >> "$GITHUB_OUTPUT"
       - name: Publish inspected tarballs and verify registry integrity
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
@@ -177,12 +169,11 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
-          VERSION: ${{ needs.build.outputs.version }}
+          VERSION: ${{ steps.identity.outputs.version }}
           WRAPPER_SHA: ${{ github.sha }}
         run: |
           set -eu
           cd prepared/packages
-          sha256sum -c SHA256SUMS
           tag="v$VERSION"
           if ! gh release view "$tag" --repo "$GH_REPO" >/dev/null 2>&1; then
             gh release create "$tag" --repo "$GH_REPO" --target "$WRAPPER_SHA" --draft --title "ExcelKit $VERSION" --notes "npm: @dztabel/excel-kit@$VERSION. Platform ZIPs and SHA-256 checksums are attached."
@@ -197,8 +188,8 @@ jobs:
           done
           gh release edit "$tag" --repo "$GH_REPO" --draft=false --latest
   install:
-    needs: [build, publish]
+    needs: publish
     uses: ./.github/workflows/verify-install.yml
     with:
-      version: ${{ needs.build.outputs.version }}
+      version: ${{ needs.publish.outputs.version }}
       core_sha: ${{ inputs.core_sha }}

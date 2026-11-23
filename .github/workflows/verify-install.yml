@@ -1,4 +1,4 @@
-name: Verify public npm installation
+name: Verify installed ExcelKit
 on:
   workflow_call:
     inputs:
@@ -8,7 +8,11 @@ on:
       core_sha:
         required: true
         type: string
+      candidate:
+        type: boolean
+        default: false
 permissions:
+  actions: read
   contents: read
 jobs:
   install:
@@ -19,14 +23,24 @@ jobs:
     runs-on: ${{ matrix.os }}
     timeout-minutes: 10
     steps:
-      - name: Install from registry with a fresh cache and verify the selected binary
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        if: inputs.candidate
+        with:
+          name: release-packages
+      - name: Install in an empty directory and exercise the installed CLI
         env:
           VERSION: ${{ inputs.version }}
           CORE_SHA: ${{ inputs.core_sha }}
+          CANDIDATE: ${{ inputs.candidate }}
         shell: bash
         run: |
           set -eu
-          npm install --prefix ./install-test --cache ./install-cache --include=optional --no-audit --no-fund --registry=https://registry.npmjs.org/ "@dztabel/excel-kit@$VERSION"
+          if [[ "$CANDIDATE" == true ]]; then
+            platform=$(node -p "process.platform+'-'+process.arch")
+            npm install --prefix install-test --cache install-cache --offline --ignore-scripts --no-audit --no-fund "./npm/dztabel-excel-kit-$VERSION.tgz" "./npm/dztabel-excel-kit-$platform-$VERSION.tgz"
+          else
+            npm install --prefix install-test --cache install-cache --include=optional --no-audit --no-fund --registry=https://registry.npmjs.org/ "@dztabel/excel-kit@$VERSION"
+          fi
           node <<'JS'
           const assert = require('node:assert/strict');
           const fs = require('node:fs');
@@ -61,5 +75,35 @@ jobs:
               if (!link.startsWith('#') && !/^https?:/.test(link)) assert.ok(fs.statSync(path.resolve(path.dirname(doc), link.split('#')[0])).isFile(), link);
             }
           }
+          assert.equal(fs.statSync(path.join(main,'README.md')).size, 0);
+          assert.ok(fs.statSync(path.join(main,'USAGE.md')).size > 0);
           console.log(platform, version.cli, artifact.sha256);
           JS
+          pkg=install-test/node_modules/@dztabel/excel-kit
+          cp -R "$pkg/recipes/update-assumptions" example
+          (cd example && node "../$pkg/bin/excel-kit.cjs" script request.json > receipt.json)
+          if [[ "$CANDIDATE" == true && "$RUNNER_OS" == macOS ]]; then
+            unzip -q "packages/excel-kit-$VERSION-macos-x64.zip" -d intel
+            test -s intel/README.md
+            ./intel/excel-kit version > intel-version.json
+            node -e "if(require('./intel-version.json').cli!==process.env.VERSION)process.exit(1)"
+            (cd intel/recipes/update-assumptions && ../../excel-kit script request.json > receipt.json)
+          fi
+          python3 -X utf8 - <<'PYTHON'
+          import json
+          from pathlib import Path
+          from zipfile import ZipFile
+          import xml.etree.ElementTree as ET
+          for example in [Path('example'), *Path('intel').glob('recipes/update-assumptions')]:
+              assert json.loads((example / 'receipt.json').read_text(encoding='utf-8'))['ok']
+              with ZipFile(example / 'cost-model-updated.xlsx') as z:
+                  sheets = ET.fromstring(z.read('xl/workbook.xml'))
+                  sheet = next(s for s in sheets.findall('.//{*}sheet') if s.get('name') == '汇总')
+                  rid = sheet.get('{http://schemas.openxmlformats.org/officeDocument/2006/relationships}id')
+                  rel = next(r for r in ET.fromstring(z.read('xl/_rels/workbook.xml.rels')) if r.get('Id') == rid)
+                  target = rel.get('Target')
+                  xml = ET.fromstring(z.read(target.lstrip('/') if target.startswith('/') else 'xl/' + target))
+                  for address, expected in [('B2', 59535000), ('B3', 4961.25)]:
+                      cell = xml.find(f'.//{{*}}c[@r="{address}"]')
+                      assert cell.find('{*}f') is not None and float(cell.findtext('{*}v')) == expected
+          PYTHON
